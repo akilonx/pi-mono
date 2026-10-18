@@ -55,7 +55,7 @@ const CODEX_RESPONSE_STATUSES = new Set<CodexResponseStatus>([
 
 export interface OpenAICodexResponsesOptions extends StreamOptions {
 	reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
-	reasoningSummary?: "auto" | "concise" | "detailed" | "off" | "on" | null;
+	reasoningSummary?: "auto" | "concise" | "detailed" | "none" | "off" | "on" | null;
 	textVerbosity?: "low" | "medium" | "high";
 }
 
@@ -324,9 +324,16 @@ function buildRequestBody(
 	}
 
 	if (options?.reasoningEffort !== undefined) {
+		// jarvis fork: default to "concise" to minimise reasoning_summary_text
+		// bleed. the codex backend only accepts auto/concise/detailed. any
+		// lingering reasoning bleed is additionally scrubbed from transcript
+		// replay by jarvis provider-capabilities dropThinkingBlockModelHints.
+		const summary = options.reasoningSummary;
+		const validSummary =
+			summary === "auto" || summary === "concise" || summary === "detailed" ? summary : "concise";
 		body.reasoning = {
 			effort: clampReasoningEffort(model.id, options.reasoningEffort),
-			summary: options.reasoningSummary ?? "auto",
+			summary: validSummary,
 		};
 	}
 
@@ -335,7 +342,10 @@ function buildRequestBody(
 
 function clampReasoningEffort(modelId: string, effort: string): string {
 	const id = modelId.includes("/") ? modelId.split("/").pop()! : modelId;
-	if ((id.startsWith("gpt-5.2") || id.startsWith("gpt-5.3") || id.startsWith("gpt-5.4")) && effort === "minimal")
+	if (
+		(id.startsWith("gpt-5.2") || id.startsWith("gpt-5.3") || id.startsWith("gpt-5.4") || id.startsWith("gpt-5.5")) &&
+		effort === "minimal"
+	)
 		return "low";
 	if (id === "gpt-5.1" && effort === "xhigh") return "high";
 	if (id === "gpt-5.1-codex-mini") return effort === "high" || effort === "xhigh" ? "high" : "medium";
