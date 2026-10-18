@@ -329,8 +329,7 @@ function buildRequestBody(
 		// lingering reasoning bleed is additionally scrubbed from transcript
 		// replay by jarvis provider-capabilities dropThinkingBlockModelHints.
 		const summary = options.reasoningSummary;
-		const validSummary =
-			summary === "auto" || summary === "concise" || summary === "detailed" ? summary : "concise";
+		const validSummary = summary === "auto" || summary === "concise" || summary === "detailed" ? summary : "concise";
 		body.reasoning = {
 			effort: clampReasoningEffort(model.id, options.reasoningEffort),
 			summary: validSummary,
